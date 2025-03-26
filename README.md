@@ -9,7 +9,7 @@ Join Google meet meetings automatically while you sleep peacefully
 # Usage Guide:
 
 Clone the repo
-`https://github.com/Rex1911/gmeet-autojoiner.git`
+`https://github.com/Jyrrel/gmeet_autojoiner.git`
 
 Go inside the project directory and do
 `npm install`
