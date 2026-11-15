@@ -1,52 +1,85 @@
-# gmeet-autojoiner
-Join Google meet meetings automatically while you sleep peacefully
+# Meet Auto-Joiner
 
-# Prerequisite:
+Joins Google Meet meetings for you at the time you schedule. Add a meeting, leave the app running, and it opens Chrome and joins automatically.
 
-- Node.js  v8 or greater
-- Chrome Browser 75+ (wont work properly on firefox)
+## What you need
 
-# Usage Guide:
+- Windows, macOS or Linux
+- [Node.js](https://nodejs.org) 18 or newer
+- Google Chrome installed
+- A Google account that is allowed to join your meetings
 
-Clone the repo
-`https://github.com/Jyrrel/gmeet_autojoiner.git`
+## Setup (first time only)
 
-Go inside the project directory and do
-`npm install`
+Open PowerShell (or a terminal) in the project folder and run:
 
-Then use `npm start` to start the app
+```powershell
+npm install
+npm run login
+```
 
-Goto `localhost:3000` to access the frontend
+`npm run login` opens a Chrome window. Sign in to your Google account (2-step verification is fine), then **close the Chrome window**. Your login is saved in the `chrome-profile` folder, so you only do this once.
 
-First and foremost, enter you Email Address and Password in the "Settings" section and click "Set"
+Optional: copy the settings file and edit it.
 
-Enter the meeting details in the "Gmeet Autojoiner" section and click "Submit"
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
 
-Keep the nodejs process **RUNNING** and you will automatically join the meeting at the specified time.
+## Run it
 
-Use the "Delete meeting" section to Delete a meeting.
+```powershell
+npm start
+```
 
-# Additional Info
+Then open http://localhost:3000 in your browser.
 
-- **IMPORTANT**: The the webcam is enabled by default,  so if you plan to run this on your laptop, be sure to cover your webcam. One way to do this is to configure the laptop to not go into "sleep" mode  when the lid is closed. 
+1. Enter a name, the Meet link (or just the code, like `abc-defg-hij`) and the time to join.
+2. Click **Schedule meeting**.
+3. Keep the PowerShell window open and the computer awake until the meeting starts.
 
-- If you host this locally, make sure that you laptop/PC doesn't sleep, or else this is not going to work.
+To stop the app, press `Ctrl+C` in the PowerShell window.
 
-- The email, password, and meeting details are held in a variable. This means that whenever you restart the server, these variables are reset. So make sure to enter everything again if you restart the server. 
+## Using the page
 
-- By default, a chrome window is opened when joining a meeting. If you dont want the chrome window to open, go into app.js and change `HEADLESS=false` to `HEADLESS=true`
+- **Countdown** at the top shows your next meeting.
+- The **status pill** shows Ready, Joining…, In a meeting, or Sign-in needed.
+- **Join now** on a meeting joins it immediately. Use it, or the "In 1 minute" button, to test.
+- **Remove** deletes a scheduled meeting.
+- **Leave meeting** closes the Chrome window the bot opened.
 
-- The process checks every few seconds to join a valid meeting. This is controlled by the `CHECKTIME` variable which is set to 10 seconds by default. Change that  variabel to change how often the procces checks for meetings to join.
+## Settings (.env)
 
-# Error resolving
- - Logs are enabled by default, so in any case there is an error check for logs
- - Retry count is set to 5, which can me changed as needed in lib/Gmeet.js::51:22
-## Known errors
- - Invalid email passs
-   - Provide email/pass in env file or through gui
- - Unable to open chrome, try with no sandbox mode
-   - to resolve this just add `--no-sandbox` to lib/Gmeet::27:74 as a string
+| Setting | Default | What it does |
+|---|---|---|
+| `HEADLESS` | `false` | `true` hides the Chrome window. Try `false` first so you can watch it work. |
+| `CAMERA` | `off` | Set to `on` to join with your camera on. The microphone is always muted. |
+| `CHECKTIME` | `10000` | How often (in milliseconds) the app checks for meetings to join. |
+| `VERBOSE` | `false` | `true` prints extra detail in the terminal, useful for troubleshooting. |
+| `PORT` | `3000` | Port for the web page. |
+| `CHROME_PATH` | auto | Full path to `chrome.exe` if Chrome isn't found. Example: `C:\Program Files\Google\Chrome\Application\chrome.exe` |
+| `NO_SANDBOX` | `false` | Set to `true` if Chrome won't start on Linux or in Docker. |
 
-# Disclaimer
+## Troubleshooting
 
-Please use this at your own risk. I do not guaranty that this will work 100% of time. If you choose to use this, know that there are chances of you not joining the meeting successfully and loosing your attendance.
+| Problem | Fix |
+|---|---|
+| `npm.ps1 cannot be loaded because running scripts is disabled` | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, then try again. |
+| `npm is not recognized` | Install Node.js, then close and reopen PowerShell. |
+| Page says "Sign-in needed" | Stop the app, run `npm run login`, sign in, close Chrome, then `npm start`. |
+| Chrome doesn't open | Install Chrome or set `CHROME_PATH` in `.env`. |
+| It clicked Join but you're not in | The host may need to let you in. Check the Chrome window. |
+| It fails to join | Set `VERBOSE=true` and `HEADLESS=false`, run again, and watch where it stops. |
+| Login window says the browser isn't secure | Use your installed Chrome (not Chromium) by setting `CHROME_PATH`, then run `npm run login` again. |
+
+## Good to know
+
+- Scheduled meetings are kept in memory. If you restart the app, add them again.
+- Don't run `npm run login` while `npm start` is running. Only one Chrome can use the profile at a time.
+- Only one meeting is open at a time. A new meeting closes the previous one.
+- Your computer must stay awake and online. Turn off sleep while you wait.
+- The `chrome-profile` folder holds your Google session. Keep it private and never share or upload it.
+- Meet's page changes over time, so a future update could break joining. Join important meetings manually as a backup.
+
+Use at your own risk.
