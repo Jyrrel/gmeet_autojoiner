@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meet Auto-Joiner</title>
+<style>
+:root{
+  --ink:#1b2430; --muted:#5c6773; --paper:#f2f5f3; --panel:#ffffff; --line:#d8dfdb;
+  --accent:#0b7a53; --accent-ink:#ffffff; --accent-soft:#dff1e8;
+  --warn:#a14a0a; --warn-soft:#fbeadb; --bad:#a32424; --bad-soft:#f9e0e0;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ink:#e7ece9; --muted:#9aa6a0; --paper:#121715; --panel:#1b2220; --line:#2d3834;
+    --accent:#3dc58b; --accent-ink:#08231a; --accent-soft:#17352a;
+    --warn:#f0a766; --warn-soft:#3a2a1a; --bad:#f08a8a; --bad-soft:#3b1f1f;
+    color-scheme: dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:24px 20px 48px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:1.25rem;margin:0;font-weight:650}
+h2{font-size:1.05rem;margin:0 0 14px;font-weight:650}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;font-size:.875rem;background:var(--accent-soft);color:var(--accent)}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+
+.banner{display:none;padding:12px 16px;border-radius:10px;margin-bottom:16px;background:var(--warn-soft);color:var(--warn)}
+.banner.show{display:block}
+.banner.bad{background:var(--bad-soft);color:var(--bad)}
+.banner.good{background:var(--accent-soft);color:var(--accent)}
+.banner button{margin-left:12px}
+code{background:rgba(127,127,127,.18);padding:1px 6px;border-radius:5px;font-size:.9em}
+
+.hero{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px;margin-bottom:20px}
+.hero .label{color:var(--muted);font-size:.9rem;margin:0}
+.hero .name{font-size:1.15rem;font-weight:600;margin:2px 0 8px;word-break:break-word}
+.count{font-size:clamp(2.4rem,9vw,4.2rem);font-weight:300;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+.hero .when{color:var(--muted);margin:6px 0 0}
+.hero.empty .count{font-size:1.4rem;font-weight:500;letter-spacing:0}
+
+.grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:20px}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+
+label{display:block;font-size:.9rem;font-weight:600;margin:0 0 6px}
+.field{margin-bottom:16px}
+.hint{font-size:.82rem;color:var(--muted);margin:5px 0 0}
+input{width:100%;padding:10px 12px;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px}
+input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;width:100%;padding:11px}
+button.small{padding:5px 10px;font-size:.85rem}
+button.danger{color:var(--bad)}
+.error{color:var(--bad);font-size:.9rem;min-height:1.3em;margin:0 0 10px}
+
+.item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}
+.item:first-of-type{border-top:0;padding-top:0}
+.item .info{min-width:0}
+.item .t{font-weight:600;word-break:break-word}
+.item .s{color:var(--muted);font-size:.88rem}
+.item .actions{display:flex;gap:6px;flex-shrink:0}
+.empty-list{color:var(--muted);margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Meet Auto-Joiner</h1>
+    <span id="pill" class="pill">Checking…</span>
+  </header>
+
+  <div id="loginBanner" class="banner">
+    Google isn’t signed in yet. Stop this app, run <code>npm run login</code>, sign in in the Chrome window, close it, then start the app again.
+  </div>
+  <div id="statusBanner" class="banner"></div>
+
+  <section id="hero" class="hero empty" aria-live="polite">
+    <p class="label" id="heroLabel">Next meeting</p>
+    <p class="name" id="heroName">Nothing scheduled</p>
+    <div class="count" id="heroCount">Add a meeting to get started</div>
+    <p class="when" id="heroWhen"></p>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Add a meeting</h2>
+      <form id="form" novalidate>
+        <div class="field">
+          <label for="name">Name</label>
+          <input id="name" placeholder="Physics lecture" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="url">Meet link or code</label>
+          <input id="url" placeholder="https://meet.google.com/abc-defg-hij" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="time">Join at</label>
+          <input id="time" type="datetime-local" required>
+          <div class="quick">
+            <button type="button" class="small" data-min="1">In 1 minute</button>
+            <button type="button" class="small" data-min="5">In 5 minutes</button>
+            <button type="button" class="small" data-min="30">In 30 minutes</button>
+          </div>
+          <p class="hint">Times use this computer’s clock. Use “In 1 minute” to test.</p>
+        </div>
+        <p class="error" id="error" role="alert"></p>
+        <button class="primary" type="submit">Schedule meeting</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Scheduled meetings</h2>
+      <div id="list"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id)
+let state = { meetings: [], status: { state: 'idle' }, loggedIn: true, now: Date.now() }
+let offset = 0 // server time minus browser time
+
+const pad = (n) => String(n).padStart(2, '0')
+const fmtDate = (t) => new Date(t).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+function fmtCount(ms) {
+  if (ms <= 0) return 'Joining now…'
+  const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60)
+  return (d ? d + 'd ' : '') + (d || h ? pad(h) + ':' : '') + pad(m) + ':' + pad(s % 60)
+}
+function setDefaultTime(min) {
+  const d = new Date(Date.now() + min * 60000); d.setSeconds(0, 0)
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+  $('time').value = local.toISOString().slice(0, 16)
+}
+
+async function api(method, url, body) {
+  const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.error || 'Something went wrong.')
+  return data
+}
+
+async function refresh() {
+  try { state = await api('GET', '/api/state'); offset = state.now - Date.now(); render() }
+  catch (e) { $('pill').className = 'pill bad'; $('pill').textContent = 'App not reachable' }
+}
+
+function render() {
+  const st = state.status
+  const pill = $('pill')
+  if (!state.loggedIn) { pill.className = 'pill warn'; pill.textContent = 'Sign-in needed' }
+  else if (st.state === 'joining') { pill.className = 'pill warn'; pill.textContent = 'Joining…' }
+  else if (st.state === 'joined') { pill.className = 'pill'; pill.textContent = 'In a meeting' }
+  else { pill.className = 'pill'; pill.textContent = 'Ready' }
+
+  $('loginBanner').classList.toggle('show', !state.loggedIn)
+
+  const sb = $('statusBanner')
+  sb.className = 'banner'
+  sb.textContent = ''
+  if (st.state === 'joining' || st.state === 'joined' || st.state === 'failed') {
+    sb.classList.add('show', st.state === 'failed' ? 'bad' : st.state === 'joined' ? 'good' : 'x')
+    sb.append((st.meeting ? st.meeting + ': ' : '') + st.message)
+    if (st.state === 'joined') {
+      const b = document.createElement('button'); b.className = 'small'; b.textContent = 'Leave meeting'
+      b.onclick = async () => { await api('POST', '/api/leave'); refresh() }
+      sb.append(b)
+    }
+  }
+
+  const list = $('list'); list.innerHTML = ''
+  if (!state.meetings.length) {
+    const p = document.createElement('p'); p.className = 'empty-list'
+    p.textContent = 'No meetings yet. Add one on the left and keep this window running.'
+    list.append(p)
+  }
+  state.meetings.forEach((m) => {
+    const row = document.createElement('div'); row.className = 'item'
+    const info = document.createElement('div'); info.className = 'info'
+    const t = document.createElement('div'); t.className = 't'; t.textContent = m.name
+    const s = document.createElement('div'); s.className = 's'; s.textContent = fmtDate(m.time)
+    info.append(t, s)
+    const act = document.createElement('div'); act.className = 'actions'
+    const j = document.createElement('button'); j.className = 'small'; j.textContent = 'Join now'
+    j.onclick = async () => { await api('POST', '/api/meetings/' + m.id + '/join-now'); refresh() }
+    const d = document.createElement('button'); d.className = 'small danger'; d.textContent = 'Remove'
+    d.onclick = async () => { await api('DELETE', '/api/meetings/' + m.id); refresh() }
+    act.append(j, d); row.append(info, act); list.append(row)
+  })
+  tick()
+}
+
+function tick() {
+  const next = state.meetings[0]
+  const hero = $('hero')
+  if (!next) {
+    hero.classList.add('empty'); $('heroName').textContent = 'Nothing scheduled'
+    $('heroCount').textContent = 'Add a meeting to get started'; $('heroWhen').textContent = ''
+    return
+  }
+  hero.classList.remove('empty')
+  $('heroName').textContent = next.name
+  $('heroCount').textContent = fmtCount(next.time - (Date.now() + offset))
+  $('heroWhen').textContent = fmtDate(next.time)
+}
+
+document.querySelectorAll('[data-min]').forEach((b) => b.onclick = () => setDefaultTime(+b.dataset.min))
+
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  $('error').textContent = ''
+  const time = new Date($('time').value).getTime()
+  try {
+    await api('POST', '/api/meetings', { name: $('name').value, url: $('url').value, time: isNaN(time) ? null : time })
+    $('name').value = ''; $('url').value = ''; setDefaultTime(5)
+    refresh()
+  } catch (err) { $('error').textContent = err.message }
+})
+
+setDefaultTime(5)
+refresh()
+setInterval(refresh, 4000)
+setInterval(tick, 1000)
+</script>
+</body>
+</html>

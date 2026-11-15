@@ -1,0 +1,21 @@
+{
+  "name": "googlemeet-autojoiner",
+  "version": "2.0.0",
+  "description": "Automatically join Google Meet meetings at a scheduled time",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "login": "node login.js"
+  },
+  "license": "ISC",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "puppeteer": "^22.15.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "shortid": "^2.2.16"
+  }
+}
